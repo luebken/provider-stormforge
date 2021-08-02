@@ -1,4 +1,4 @@
-module github.com/crossplane/provider-template
+module github.com/luebken/provider-stormforge
 
 go 1.16
 

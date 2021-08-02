@@ -1,5 +1,5 @@
-apiVersion: sample.template.crossplane.io/v1alpha1
-kind: MyType
+apiVersion: load.stormforge.io/v1alpha1
+kind: TestCase
 metadata:
   name: example
 spec:

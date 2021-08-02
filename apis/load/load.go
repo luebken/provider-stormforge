@@ -15,4 +15,4 @@ limitations under the License.
 */
 
 // Package sample contains group Sample API versions
-package sample
+package load

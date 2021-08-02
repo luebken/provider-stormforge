@@ -4,18 +4,18 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.3.0
   creationTimestamp: null
-  name: mytypes.sample.template.crossplane.io
+  name: testcases.load.stormforge.io
 spec:
-  group: sample.template.crossplane.io
+  group: load.stormforge.io
   names:
     categories:
     - crossplane
     - managed
-    - PROVIDER-NAME
-    kind: MyType
-    listKind: MyTypeList
-    plural: mytypes
-    singular: mytype
+    - stormforge
+    kind: TestCase
+    listKind: TestCaseList
+    plural: testcases
+    singular: testcase
   scope: Cluster
   versions:
   - additionalPrinterColumns:
@@ -24,9 +24,6 @@ spec:
       type: string
     - jsonPath: .status.atProvider.state
       name: STATE
-      type: string
-    - jsonPath: .spec.classRef.name
-      name: CLASS
       type: string
     - jsonPath: .metadata.creationTimestamp
       name: AGE
@@ -45,7 +42,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: A MyTypeSpec defines the desired state of a MyType.
+            description: A TestCaseSpec defines the desired state of a MyType.
             properties:
               deletionPolicy:
                 description: DeletionPolicy specifies what will happen to the underlying external when this managed resource is deleted - either "Delete" or "Orphan" the external resource. The "Delete" policy is the default when no policy is specified.
@@ -96,7 +93,7 @@ spec:
             - forProvider
             type: object
           status:
-            description: A MyTypeStatus represents the observed state of a MyType.
+            description: A TestCaseStatus represents the observed state of a MyType.
             properties:
               atProvider:
                 description: MyTypeObservation are the observable fields of a MyType.

@@ -23,25 +23,25 @@ import (
 )
 
 // MyTypeParameters are the configurable fields of a MyType.
-type MyTypeParameters struct {
+type TestCaseParameters struct {
 	ConfigurableField string `json:"configurableField"`
 }
 
 // MyTypeObservation are the observable fields of a MyType.
-type MyTypeObservation struct {
+type TestCaseObservation struct {
 	ObservableField string `json:"observableField,omitempty"`
 }
 
-// A MyTypeSpec defines the desired state of a MyType.
-type MyTypeSpec struct {
+// A TestCaseSpec defines the desired state of a MyType.
+type TestCaseSpec struct {
 	xpv1.ResourceSpec `json:",inline"`
-	ForProvider       MyTypeParameters `json:"forProvider"`
+	ForProvider       TestCaseParameters `json:"forProvider"`
 }
 
-// A MyTypeStatus represents the observed state of a MyType.
-type MyTypeStatus struct {
+// A TestCaseStatus represents the observed state of a MyType.
+type TestCaseStatus struct {
 	xpv1.ResourceStatus `json:",inline"`
-	AtProvider          MyTypeObservation `json:"atProvider,omitempty"`
+	AtProvider          TestCaseObservation `json:"atProvider,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -52,20 +52,20 @@ type MyTypeStatus struct {
 // +kubebuilder:printcolumn:name="STATE",type="string",JSONPath=".status.atProvider.state"
 // +kubebuilder:printcolumn:name="AGE",type="date",JSONPath=".metadata.creationTimestamp"
 // Please replace `PROVIDER-NAME` with your actual provider name, like `aws`, `azure`, `gcp`, `alibaba`
-// +kubebuilder:resource:scope=Cluster,categories={crossplane,managed,PROVIDER-NAME}
-type MyType struct {
+// +kubebuilder:resource:scope=Cluster,categories={crossplane,managed,stormforge}
+type TestCase struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   MyTypeSpec   `json:"spec"`
-	Status MyTypeStatus `json:"status,omitempty"`
+	Spec   TestCaseSpec   `json:"spec"`
+	Status TestCaseStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
 // MyTypeList contains a list of MyType
-type MyTypeList struct {
+type TestCaseList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []MyType `json:"items"`
+	Items           []TestCase `json:"items"`
 }
