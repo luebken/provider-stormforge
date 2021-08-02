@@ -18,6 +18,7 @@ package testcase
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os/exec"
 
@@ -47,6 +48,19 @@ const (
 	errNewClient = "cannot create new Service"
 )
 
+type forgeApiResponse struct {
+	ForgeApiResponseData []forgeApiResponseData `json:"data"`
+}
+type forgeApiResponseData struct {
+	Id         string                         `json:"id"`
+	Attributes forgeApiResponseDataAttributes `json:"attributes"`
+}
+type forgeApiResponseDataAttributes struct {
+	Name  string `json:"name"`
+	Scope string `json:"scope"`
+	Org   string
+}
+
 type forge struct {
 	jwtToken string
 }
@@ -57,12 +71,9 @@ func NewForge(jwtToken string) (forge, error) {
 	}
 	return *result, nil
 }
-
 func (f *forge) ping() error {
-	arg0 := "ping"
-
 	//TODO f.jwtToken
-	cmd := exec.Command("forge", arg0)
+	cmd := exec.Command("forge", "ping")
 	stdout, err := cmd.Output()
 
 	if err != nil {
@@ -70,6 +81,40 @@ func (f *forge) ping() error {
 		return err
 	}
 	fmt.Println(string(stdout))
+	return nil
+}
+func (f *forge) exists(org string, name string) (bool, error) {
+	cmd := exec.Command("forge", "--output", "json", "test-case", "list", org)
+	stdout, err := cmd.Output()
+	if err != nil {
+		fmt.Println(err.Error())
+		return false, err
+	}
+
+	var r forgeApiResponse
+	err = json.Unmarshal(stdout, &r)
+	if err != nil {
+		fmt.Println(err.Error())
+		return false, err
+	}
+
+	for _, element := range r.ForgeApiResponseData {
+		if element.Attributes.Name == name {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (f *forge) create(org string, name string) error {
+	cmd := exec.Command("forge", "test-case", "create", org+"/"+name, "examples/sample/loadtest.mjs") //TODO real test-case
+	stdout, err := cmd.Output()
+
+	if err != nil {
+		fmt.Println(err.Error())
+		return err
+	}
+	fmt.Println("create: " + string(stdout))
 	return nil
 }
 
@@ -153,20 +198,22 @@ type external struct {
 }
 
 func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
-	cr, ok := mg.(*v1alpha1.TestCase)
+	testCase, ok := mg.(*v1alpha1.TestCase)
 	if !ok {
 		return managed.ExternalObservation{}, errors.New(errNotMyType)
 	}
 
+	exists, _ := c.forge.exists(testCase.Spec.ForProvider.Org, testCase.Spec.ForProvider.Name)
+
 	// These fmt statements should be removed in the real implementation.
-	fmt.Printf("MDL Observing: %+v\n", cr)
-	c.forge.ping()
+	fmt.Printf("MDL Observing: %+v\n", testCase)
+	fmt.Printf("MDL Observing TestCase Exists: %+v\n", exists)
 
 	return managed.ExternalObservation{
 		// Return false when the external resource does not exist. This lets
 		// the managed resource reconciler know that it needs to call Create to
 		// (re)create the resource, or that it has successfully been deleted.
-		ResourceExists: true,
+		ResourceExists: exists,
 
 		// Return false when the external resource exists, but it not up to date
 		// with the desired managed resource state. This lets the managed
@@ -186,7 +233,10 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 	}
 
 	fmt.Printf("MDL Creating: %+v\n", cr)
-	c.forge.ping()
+	err := c.forge.create(cr.Spec.ForProvider.Org, cr.Spec.ForProvider.Name)
+	if err != nil {
+		return managed.ExternalCreation{}, err
+	}
 
 	return managed.ExternalCreation{
 		// Optionally return any details that may be required to connect to the
@@ -217,7 +267,6 @@ func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 	}
 
 	fmt.Printf("MDL Deleting: %+v", cr)
-	c.forge.ping()
 
 	return nil
 }

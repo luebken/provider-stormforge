@@ -53,10 +53,13 @@ spec:
               forProvider:
                 description: MyTypeParameters are the configurable fields of a MyType.
                 properties:
-                  configurableField:
+                  name:
+                    type: string
+                  org:
                     type: string
                 required:
-                - configurableField
+                - name
+                - org
                 type: object
               providerConfigRef:
                 description: ProviderConfigReference specifies how the provider that will be used to create, observe, update, and delete this managed resource should be configured.

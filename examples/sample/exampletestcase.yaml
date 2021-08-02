@@ -1,9 +1,10 @@
 apiVersion: load.stormforge.io/v1alpha1
 kind: TestCase
 metadata:
-  name: example
+  name: example-test-case-name
 spec:
   forProvider:
-    configurableField: test
+    name: example-test-case-name
+    org: luebken-1
   providerConfigRef:
     name: example

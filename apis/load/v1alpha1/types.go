@@ -24,7 +24,8 @@ import (
 
 // MyTypeParameters are the configurable fields of a MyType.
 type TestCaseParameters struct {
-	ConfigurableField string `json:"configurableField"`
+	Name string `json:"name"`
+	Org  string `json:"org"`
 }
 
 // MyTypeObservation are the observable fields of a MyType.
