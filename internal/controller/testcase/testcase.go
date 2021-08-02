@@ -19,6 +19,7 @@ package testcase
 import (
 	"context"
 	"fmt"
+	"os/exec"
 
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -38,7 +39,7 @@ import (
 )
 
 const (
-	errNotMyType    = "managed resource is not a MyType custom resource"
+	errNotMyType    = "managed resource is not a TestCase custom resource"
 	errTrackPCUsage = "cannot track ProviderConfig usage"
 	errGetPC        = "cannot get ProviderConfig"
 	errGetCreds     = "cannot get credentials"
@@ -46,12 +47,31 @@ const (
 	errNewClient = "cannot create new Service"
 )
 
-// A NoOpService does nothing.
-type NoOpService struct{}
+type forge struct {
+	jwtToken string
+}
 
-var (
-	newNoOpService = func(_ []byte) (interface{}, error) { return &NoOpService{}, nil }
-)
+func NewForge(jwtToken string) (forge, error) {
+	result := &forge{
+		jwtToken: jwtToken,
+	}
+	return *result, nil
+}
+
+func (f *forge) ping() error {
+	arg0 := "ping"
+
+	//TODO f.jwtToken
+	cmd := exec.Command("forge", arg0)
+	stdout, err := cmd.Output()
+
+	if err != nil {
+		fmt.Println(err.Error())
+		return err
+	}
+	fmt.Println(string(stdout))
+	return nil
+}
 
 // Setup adds a controller that reconciles TestCase managed resources.
 func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter) error {
@@ -64,9 +84,9 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter) error {
 	r := managed.NewReconciler(mgr,
 		resource.ManagedKind(v1alpha1.TestCaseGroupVersionKind),
 		managed.WithExternalConnecter(&connector{
-			kube:         mgr.GetClient(),
-			usage:        resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
-			newServiceFn: newNoOpService}),
+			kube:  mgr.GetClient(),
+			usage: resource.NewProviderConfigUsageTracker(mgr.GetClient(), &apisv1alpha1.ProviderConfigUsage{}),
+		}),
 		managed.WithLogger(l.WithValues("controller", name)),
 		managed.WithRecorder(event.NewAPIRecorder(mgr.GetEventRecorderFor(name))))
 
@@ -80,9 +100,8 @@ func Setup(mgr ctrl.Manager, l logging.Logger, rl workqueue.RateLimiter) error {
 // A connector is expected to produce an ExternalClient when its Connect method
 // is called.
 type connector struct {
-	kube         client.Client
-	usage        resource.Tracker
-	newServiceFn func(creds []byte) (interface{}, error)
+	kube  client.Client
+	usage resource.Tracker
 }
 
 // Connect typically produces an ExternalClient by:
@@ -116,12 +135,13 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 
 	fmt.Printf("MDL pc.Spec.Credentials.data: %+v\n", string(data))
 
-	svc, err := c.newServiceFn(data)
+	forge, err := NewForge(string(data))
 	if err != nil {
 		return nil, errors.Wrap(err, errNewClient)
 	}
+	forge.ping()
 
-	return &external{service: svc}, nil
+	return &external{forge: forge}, nil
 }
 
 // An ExternalClient observes, then either creates, updates, or deletes an
@@ -129,7 +149,7 @@ func (c *connector) Connect(ctx context.Context, mg resource.Managed) (managed.E
 type external struct {
 	// A 'client' used to connect to the external resource API. In practice this
 	// would be something like an AWS SDK client.
-	service interface{}
+	forge forge
 }
 
 func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
@@ -139,7 +159,8 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	}
 
 	// These fmt statements should be removed in the real implementation.
-	fmt.Printf("MDL Observing: %+v", cr)
+	fmt.Printf("MDL Observing: %+v\n", cr)
+	c.forge.ping()
 
 	return managed.ExternalObservation{
 		// Return false when the external resource does not exist. This lets
@@ -164,7 +185,8 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 		return managed.ExternalCreation{}, errors.New(errNotMyType)
 	}
 
-	fmt.Printf("MDL Creating: %+v", cr)
+	fmt.Printf("MDL Creating: %+v\n", cr)
+	c.forge.ping()
 
 	return managed.ExternalCreation{
 		// Optionally return any details that may be required to connect to the
@@ -179,7 +201,7 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 		return managed.ExternalUpdate{}, errors.New(errNotMyType)
 	}
 
-	fmt.Printf("MDL Updating: %+v", cr)
+	fmt.Printf("MDL Updating: %+v\n", cr)
 
 	return managed.ExternalUpdate{
 		// Optionally return any details that may be required to connect to the
@@ -195,6 +217,7 @@ func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 	}
 
 	fmt.Printf("MDL Deleting: %+v", cr)
+	c.forge.ping()
 
 	return nil
 }
